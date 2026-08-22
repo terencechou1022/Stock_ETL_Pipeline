@@ -1,9 +1,12 @@
 # 台股市場資料網路爬蟲與 ETL Pipeline
 
 [![CI](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml)
+[![Live demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://stock-etl-pipeline.streamlit.app/)
 
 一條完整的 ETL Pipeline：從三個官方來源抽取台股資料，正規化後**冪等寫入** CSV，
 附 33 個離線測試、每日排程與籌碼儀表板。
+
+**線上儀表板：https://stock-etl-pipeline.streamlit.app/**
 
 | 來源 | 抓什麼 | 技術 |
 |---|---|---|
@@ -125,11 +128,17 @@ $ python main.py twse --stock 2330 --start 2024-02 --end 2024-03   # 重疊區�
 
 ### 儀表板
 
+線上版本（Streamlit Community Cloud）：https://stock-etl-pipeline.streamlit.app/
+
+本機執行：
+
 ```bash
 streamlit run app.py
 ```
 
-讀取 `data/` 下的 CSV，顯示股價、期貨未平倉、大戶持股比例三條線。
+顯示股價、期貨未平倉、大戶持股比例三條線。資料來源的選擇是自動的：
+**有 `data/` 就用 `data/`，沒有才退回 `sample_data/`**。因為 `data/` 不納入版本控制，
+雲端部署時只會有後者；本機跑過爬蟲之後就會自動切換到最新資料，不需要改任何設定。
 
 ### 報酬率分析
 
@@ -227,6 +236,7 @@ pytest -q      # 33 passed
 ```
 ├── main.py                  # CLI 入口
 ├── app.py                   # Streamlit 儀表板
+├── sample_data/             # 展示快照，供線上 demo（data/ 不納入版控）
 ├── scrapers/
 │   ├── twse.py              # 證交所（requests + JSON API）
 │   ├── taifex.py            # 期交所（Selenium）
@@ -247,4 +257,5 @@ pytest -q      # 33 passed
 
 資料來自臺灣證券交易所、臺灣期貨交易所、臺灣集中保管結算所之公開資訊。
 本專案僅供學習與技術研究，**不構成任何投資建議**。
-抓取結果不納入版本控制（見 `.gitignore`），請自行執行取得。
+抓取結果（`data/`）不納入版本控制，請自行執行取得。`sample_data/` 是一份約 35 KB 的
+小型快照，僅為了讓線上儀表板有東西可看而納入版控。

@@ -13,7 +13,10 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-DATA_DIR = Path('data')
+# 以腳本位置為基準而不是工作目錄：從任何路徑啟動都能找到資料
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / 'data'
+SAMPLE_DIR = BASE_DIR / 'sample_data'  # 納入版控的展示快照，供雲端部署使用
 MAJOR_LEVEL = '1,000,001以上'          # 集保級距中的「大戶」
 TOTAL_LEVEL = '合　計'                  # 注意是全形空白
 
@@ -25,8 +28,22 @@ def load(path):
     return pd.read_csv(path, encoding='utf-8-sig', parse_dates=['日期'])
 
 
+def resolve_data_dir():
+    """優先使用本機抓取結果，沒有才退回 repo 內的展示快照。
+
+    data/ 不納入版本控制，所以雲端部署時只有 sample_data/ 可用；
+    本機跑過爬蟲之後會自動改用最新資料，不必改任何設定。
+    """
+    if DATA_DIR.exists() and any(DATA_DIR.glob('*.csv')):
+        return DATA_DIR, False
+    return SAMPLE_DIR, True
+
+
+ACTIVE_DIR, USING_SAMPLE = resolve_data_dir()
+
+
 def find(pattern):
-    return sorted(DATA_DIR.glob(pattern))
+    return sorted(ACTIVE_DIR.glob(pattern))
 
 
 def line_chart(wide, value_title, height=280):
@@ -54,6 +71,13 @@ def date_range_caption(frame, label):
 
 st.title('台股籌碼儀表板')
 st.caption('資料來源：臺灣證券交易所、臺灣期貨交易所、臺灣集中保管結算所（僅供學習研究，非投資建議）')
+
+if USING_SAMPLE:
+    st.info(
+        '目前顯示的是 repo 內的**展示快照**（`sample_data/`）。'
+        '在本機執行爬蟲後，儀表板會自動改用 `data/` 的最新資料。',
+        icon='📁',
+    )
 
 twse_files = find('twse_*.csv')
 taifex_files = find('taifex_*.csv')
