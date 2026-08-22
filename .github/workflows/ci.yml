@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: 安裝相依套件
+        run: pip install -r requirements.txt
+
+      # 測試全部使用 tests/fixtures 的離線樣本，且 conftest 會封鎖 socket，
+      # 因此不依賴外部網站可用性——CI 綠燈代表解析邏輯正確，不代表網站沒改版。
+      - name: 執行測試
+        run: pytest -q

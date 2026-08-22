@@ -1,0 +1,40 @@
+name: Daily scrape
+
+# 每個交易日收盤後抓取當月資料，驗證爬蟲對真實網站仍然有效。
+# 只跑證交所這支（純 requests），因為兩支 Selenium 爬蟲需要瀏覽器，
+# 在 CI 上跑既慢又容易因為網站狀態而不穩定。
+on:
+  schedule:
+    - cron: '30 10 * * 1-5'      # UTC 10:30 = 台灣時間 18:30，收盤後
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: 安裝相依套件
+        run: pip install -r requirements.txt
+
+      # 允許失敗：證交所可能擋雲端 IP，那是來源端的限制，
+      # 不該讓排程顯示紅燈誤導成程式有問題。
+      - name: 抓取當月資料
+        continue-on-error: true
+        run: |
+          MONTH=$(date -u -d '+8 hours' +%Y-%m)
+          python main.py twse --stock 2330 --start "$MONTH" --end "$MONTH"
+
+      - name: 上傳 CSV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: twse-${{ github.run_number }}
+          path: data/*.csv
+          if-no-files-found: warn
+          retention-days: 14
