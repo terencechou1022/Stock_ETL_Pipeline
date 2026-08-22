@@ -2,7 +2,8 @@
 
 [![CI](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml)
 
-從三個官方來源抓取台股資料，整理成可直接分析的 CSV，並附一個籌碼儀表板。
+一條完整的 ETL Pipeline：從三個官方來源抽取台股資料，正規化後**冪等寫入** CSV，
+附 33 個離線測試、每日排程與籌碼儀表板。
 
 | 來源 | 抓什麼 | 技術 |
 |---|---|---|
@@ -12,6 +13,42 @@
 
 三個來源合起來才有意義：**價格**在動的時候，**期貨未平倉**告訴你有沒有新資金進場、
 **大戶持股比例**告訴你籌碼是往集中還是往分散走。單看任何一個都看不出來。
+
+---
+
+## 工程特性
+
+抓資料只是 Extract。這個專案真正花力氣的地方在後面幾件事：
+
+| 特性 | 做法 | 實作位置 |
+|---|---|---|
+| **分層** | fetch（只做 I/O）／parse（純函式）／storage（落地）三層各司其職 | [`scrapers/`](scrapers/) |
+| **冪等寫入** | 依 key 合併去重，同一區間重跑不會產生重複列 | [`storage.py`](scrapers/storage.py) |
+| **增量更新** | 與既有 CSV 合併，只補新資料，排程重跑或手動補抓都不必先清檔 | [`storage.py`](scrapers/storage.py) |
+| **結構驗證** | 解析前檢查欄位，不符時帶著「實際看到什麼」報錯，而不是安靜地產出髒資料 | [`errors.py`](scrapers/errors.py) |
+| **部分失敗容忍** | 單日查無資料歸類為 `NoDataError`，跳過並記錄，不讓一天休市中斷整批作業 | [`taifex.py`](scrapers/taifex.py) |
+| **重試策略** | 只在 fetch 層以遞增間隔重試；`NoDataError` 不重試——那是確定沒有，再試也沒用 | [`retry.py`](scrapers/retry.py) |
+| **可離線測試** | parse 為純函式；測試封鎖 socket，碰到網路就失敗 | [`tests/conftest.py`](tests/conftest.py) |
+| **排程執行** | GitHub Actions 每交易日收盤後自動抓取 | [`.github/workflows/`](.github/workflows/) |
+
+其中**冪等**與**部分失敗容忍**都是實際輸出，不是設計意圖而已：
+
+```
+$ python main.py twse --stock 2330 --start 2024-02 --end 2024-03   # 與既有資料重疊
+INFO    已寫入 data\twse_2330.csv：共 56 列（新增 0 列）
+```
+
+```
+$ python main.py taifex --start 2024-10-02 --end 2024-10-04 --headless
+INFO    暖機查詢中……
+INFO    2024-10-02 無資料，略過（頁面沒有表格，應為休市日）
+INFO    2024-10-03 無資料，略過（頁面沒有表格，應為休市日）
+INFO    已取得 2024-10-04
+INFO    已寫入 data\taifex_TX.csv：共 6 列（新增 6 列）
+```
+
+第二個例子剛好打中「假日表靠不住」這件事：2024-10-02、10-03 是颱風山陀兒的休市日，
+`holidays` 套件不會收錄，所以這兩天確實會進入查詢迴圈——批次沒有中斷，而是跳過並記錄。
 
 ---
 
