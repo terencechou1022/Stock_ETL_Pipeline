@@ -2,8 +2,9 @@
 
 [![CI](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml)
 
-一條完整的 ETL Pipeline：從三個官方來源抽取台股資料，正規化後**冪等寫入** CSV，
-附 33 個離線測試、每日排程與籌碼儀表板。
+從證交所、期交所與集保三個官方來源抽取台股資料，正規化後**冪等增量寫入** CSV。
+fetch／parse／storage 三層分離，解析層為純函式，39 個測試全離線執行，
+每交易日由 GitHub Actions 排程更新。
 
 | 來源 | 抓什麼 | 技術 |
 |---|---|---|
@@ -122,6 +123,22 @@ $ python main.py twse --stock 2330 --start 2024-02 --end 2024-03   # 重疊區�
 20:03:10 INFO    已寫入 data\twse_2330.csv：共 56 列（新增 0 列）
 ```
 
+### 離開碼
+
+排程需要區分「爬蟲壞了」與「來源當下不可用」，因此離開碼分成四種：
+
+| 碼 | 意義 | 排程處理 |
+|---|---|---|
+| 0 | 成功 | — |
+| 1 | 程式或來源結構壞了（API 欄位對不上、參數錯誤），需要修 | 紅燈 |
+| 2 | 來源當下不可用（被擋、超時、連不上），重跑可能就好 | 綠燈 + warning |
+| 3 | 查詢成功但該區間沒有資料（休市、尚未公布） | 綠燈 + warning |
+
+分類發生在 fetch 邊界（`scrapers/retry.py`）：重試耗盡後，已經是 `ScraperError`
+的原樣往上拋，其餘（連線、超時、driver 異常）才包成 `SourceUnavailableError`。
+這個界線是關鍵——`UnexpectedPageError` 若被誤歸成來源問題，排程會顯示綠燈，
+真正的爬蟲破壞就被吃掉了。
+
 ### 報酬率分析
 
 ```bash
@@ -185,7 +202,7 @@ python analysis/returns.py --market us --start 2023-01-01
 ## 測試
 
 ```bash
-pytest -q      # 33 passed
+pytest -q      # 39 passed
 ```
 
 測試全部使用 `tests/fixtures/` 的離線樣本（真實回應，僅剝除 script/style 並裁切到
@@ -227,7 +244,7 @@ pytest -q      # 33 passed
 │   ├── retry.py             # fetch 層重試
 │   └── errors.py            # NoDataError / UnexpectedPageError
 ├── analysis/returns.py      # 多標的累積報酬比較
-├── tests/                   # 33 個離線測試 + 真實回應樣本
+├── tests/                   # 39 個離線測試 + 真實回應樣本
 └── .github/workflows/       # CI（測試）與每日排程抓取
 ```
 
@@ -237,4 +254,5 @@ pytest -q      # 33 passed
 
 資料來自臺灣證券交易所、臺灣期貨交易所、臺灣集中保管結算所之公開資訊。
 本專案僅供學習與技術研究，**不構成任何投資建議**。
-抓取結果不納入版本控制（見 `.gitignore`），請自行執行取得。
+抓取結果（`data/`）不納入版本控制，請自行執行取得。`sample_data/` 是一份約 35 KB 的
+小型快照，僅為了讓線上儀表板有東西可看而納入版控。
