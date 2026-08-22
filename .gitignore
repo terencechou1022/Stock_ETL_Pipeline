@@ -1,0 +1,19 @@
+# 虛擬環境
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# 抓取結果（不將市場原始資料 commit 進 repo）
+data/*.csv
+analysis/output/
+
+# 編輯器與作業系統
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
