@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+# 讓 pytest 無論以 `pytest` 或 `python -m pytest` 呼叫都能匯入 scrapers/ 與 tests/。
+# 裸 pytest 不會把當前目錄加入 sys.path，只有 `python -m pytest` 會——
+# CI 用的是前者，因此在加上這一行之前，CI 會在收集階段就 ModuleNotFoundError。
+pythonpath = ["."]
+testpaths = ["tests"]
