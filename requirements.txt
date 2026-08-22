@@ -1,0 +1,14 @@
+# 爬取與資料處理
+pandas>=2.2          # 2.2 起 freq='M' 已棄用，改用 'MS'
+requests>=2.31
+selenium>=4.20       # 4.6+ 內建 Selenium Manager，會自動下載對應版本的 msedgedriver
+holidays>=0.50
+lxml>=5.0            # pandas.read_html 的解析後端，同時用於擷取頁面日期
+
+# 測試
+pytest>=8.0
+
+# 分析與儀表板
+streamlit>=1.35
+yfinance>=0.2.60     # 0.2.51 起 auto_adjust 預設為 True，已無 'Adj Close' 欄
+matplotlib>=3.8
