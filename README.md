@@ -1,4 +1,4 @@
-# 台股市場資料爬蟲
+# 台股市場資料網路爬蟲與 ETL Pipeline
 
 [![CI](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml)
 
