@@ -3,6 +3,11 @@ name: Daily scrape
 # 每個交易日收盤後抓取當月資料，驗證爬蟲對真實網站仍然有效。
 # 只跑證交所這支（純 requests），因為兩支 Selenium 爬蟲需要瀏覽器，
 # 在 CI 上跑既慢又容易因為網站狀態而不穩定。
+#
+# 注意：這支沒有 push 觸發。force-push 改寫歷史後，GitHub 只會重新註冊有 push
+# 觸發的 workflow（例如 ci.yml），這支會從 workflow 清單消失——cron 不再執行、
+# workflow_dispatch 也叫不到，而且沒有任何提示。要恢復必須推一筆觸及本檔案的
+# commit。
 on:
   schedule:
     - cron: '30 10 * * 1-5'      # UTC 10:30 = 台灣時間 18:30，收盤後

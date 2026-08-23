@@ -4,7 +4,7 @@
 [![Live demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://stock-etl-pipeline.streamlit.app)
 
 從證交所、期交所與集保三個官方來源抽取台股資料，正規化後**冪等增量寫入** CSV。
-fetch／parse／storage 三層分離，解析層為純函式，33 個測試全離線執行，
+fetch／parse／storage 三層分離，解析層為純函式，39 個測試全離線執行，
 每交易日由 GitHub Actions 排程更新。
 
 **線上儀表板：https://stock-etl-pipeline.streamlit.app**
@@ -220,7 +220,7 @@ python analysis/returns.py --market us --start 2023-01-01
 ## 測試
 
 ```bash
-pytest -q      # 33 passed
+pytest -q      # 39 passed
 ```
 
 測試全部使用 `tests/fixtures/` 的離線樣本（真實回應，僅剝除 script/style 並裁切到
@@ -264,7 +264,7 @@ pytest -q      # 33 passed
 │   ├── retry.py             # fetch 層重試
 │   └── errors.py            # NoDataError / UnexpectedPageError
 ├── analysis/returns.py      # 多標的累積報酬比較
-├── tests/                   # 33 個離線測試 + 真實回應樣本
+├── tests/                   # 39 個離線測試 + 真實回應樣本
 └── .github/workflows/       # CI（測試）與每日排程抓取
 ```
 
