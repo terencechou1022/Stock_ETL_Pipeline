@@ -1,12 +1,13 @@
 # 台股市場資料網路爬蟲與 ETL Pipeline
 
 [![CI](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml)
-[![Live demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://stock-etl-pipeline.streamlit.app/)
+[![Live demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://stock-etl-pipeline.streamlit.app)
 
-一條完整的 ETL Pipeline：從三個官方來源抽取台股資料，正規化後**冪等寫入** CSV，
-附 33 個離線測試、每日排程與籌碼儀表板。
+從證交所、期交所與集保三個官方來源抽取台股資料，正規化後**冪等增量寫入** CSV。
+fetch／parse／storage 三層分離，解析層為純函式，33 個測試全離線執行，
+每交易日由 GitHub Actions 排程更新。
 
-**線上儀表板：https://stock-etl-pipeline.streamlit.app/**
+**線上儀表板：https://stock-etl-pipeline.streamlit.app**
 
 | 來源 | 抓什麼 | 技術 |
 |---|---|---|
@@ -128,7 +129,7 @@ $ python main.py twse --stock 2330 --start 2024-02 --end 2024-03   # 重疊區�
 
 ### 儀表板
 
-線上版本（Streamlit Community Cloud）：https://stock-etl-pipeline.streamlit.app/
+線上版本（Streamlit Community Cloud）：https://stock-etl-pipeline.streamlit.app
 
 本機執行：
 
