@@ -127,6 +127,22 @@ $ python main.py twse --stock 2330 --start 2024-02 --end 2024-03   # 重疊區�
 20:03:10 INFO    已寫入 data\twse_2330.csv：共 56 列（新增 0 列）
 ```
 
+### 離開碼
+
+排程需要區分「爬蟲壞了」與「來源當下不可用」，因此離開碼分成四種：
+
+| 碼 | 意義 | 排程處理 |
+|---|---|---|
+| 0 | 成功 | — |
+| 1 | 程式或來源結構壞了（API 欄位對不上、參數錯誤），需要修 | 紅燈 |
+| 2 | 來源當下不可用（被擋、超時、連不上），重跑可能就好 | 綠燈 + warning |
+| 3 | 查詢成功但該區間沒有資料（休市、尚未公布） | 綠燈 + warning |
+
+分類發生在 fetch 邊界（`scrapers/retry.py`）：重試耗盡後，已經是 `ScraperError`
+的原樣往上拋，其餘（連線、超時、driver 異常）才包成 `SourceUnavailableError`。
+這個界線是關鍵——`UnexpectedPageError` 若被誤歸成來源問題，排程會顯示綠燈，
+真正的爬蟲破壞就被吃掉了。
+
 ### 儀表板
 
 線上版本（Streamlit Community Cloud）：https://stock-etl-pipeline.streamlit.app

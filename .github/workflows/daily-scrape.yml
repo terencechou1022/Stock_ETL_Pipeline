@@ -22,13 +22,20 @@ jobs:
       - name: 安裝相依套件
         run: pip install -r requirements.txt
 
-      # 允許失敗：證交所可能擋雲端 IP，那是來源端的限制，
-      # 不該讓排程顯示紅燈誤導成程式有問題。
+      # 只有「程式壞了」才顯示紅燈。證交所擋雲端 IP、或當月還沒有資料，都是
+      # 來源端的狀況，標成 annotation 留下紀錄但不算失敗——否則真正的爬蟲破壞
+      # 會被淹沒在這類雜訊裡。離開碼的定義見 main.py 的模組 docstring。
       - name: 抓取當月資料
-        continue-on-error: true
         run: |
           MONTH=$(date -u -d '+8 hours' +%Y-%m)
-          python main.py twse --stock 2330 --start "$MONTH" --end "$MONTH"
+          code=0
+          python main.py twse --stock 2330 --start "$MONTH" --end "$MONTH" || code=$?
+          case "$code" in
+            0) echo "::notice::${MONTH} 抓取成功" ;;
+            2) echo "::warning::來源不可用（被擋、超時或連不上），非程式問題" ;;
+            3) echo "::warning::${MONTH} 沒有資料（休市或尚未公布）" ;;
+            *) echo "::error::爬蟲需要修：離開碼 ${code}"; exit "$code" ;;
+          esac
 
       - name: 上傳 CSV
         if: always()

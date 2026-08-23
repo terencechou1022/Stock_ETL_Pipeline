@@ -5,6 +5,13 @@
     python main.py twse   --stock 2330 --start 2024-01 --end 2024-03
     python main.py taifex --start 2024-09-01 --end 2024-09-10 --contract TX
     python main.py tdcc   --stock 2330 --weeks 5
+
+離開碼刻意分開，讓排程能區分「程式壞了」與「來源當下不可用」：
+
+    0  成功
+    1  程式或來源結構壞了，需要修（API 欄位對不上、參數錯誤）
+    2  來源當下不可用（被擋、超時、連不上），重跑可能就好
+    3  查詢成功但該區間沒有資料（休市、尚未公布）
 """
 import argparse
 import logging
@@ -14,10 +21,15 @@ import sys
 import pandas as pd
 
 from scrapers import taifex, tdcc, twse
-from scrapers.errors import ScraperError
+from scrapers.errors import NoDataError, ScraperError, SourceUnavailableError
 
 MONTH_PATTERN = re.compile(r'^\d{4}-\d{2}$')
 LOG_LEVELS = ['DEBUG', 'INFO', 'WARNING', 'ERROR']
+
+EXIT_OK = 0
+EXIT_BROKEN = 1
+EXIT_SOURCE_UNAVAILABLE = 2
+EXIT_NO_DATA = 3
 
 
 def _use_utf8_output():
@@ -96,12 +108,18 @@ def main(argv=None):
         else:
             path = tdcc.run(args.stock, weeks=args.weeks, out_dir=args.out,
                             headless=args.headless)
+    except NoDataError as exc:
+        logging.warning('沒有取得資料：%s', exc)
+        return EXIT_NO_DATA
+    except SourceUnavailableError as exc:
+        logging.error('來源不可用：%s', exc)
+        return EXIT_SOURCE_UNAVAILABLE
     except (ScraperError, ValueError) as exc:
         logging.error('抓取失敗：%s', exc)
-        return 1
+        return EXIT_BROKEN
 
     print(f'完成：{path}')
-    return 0
+    return EXIT_OK
 
 
 if __name__ == '__main__':
