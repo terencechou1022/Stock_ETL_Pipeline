@@ -20,3 +20,6 @@ desktop.ini
 
 # 工作日誌（只存在本機）
 tasks/
+
+# notebook 的自動存檔
+.ipynb_checkpoints/

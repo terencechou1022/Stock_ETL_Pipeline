@@ -24,3 +24,11 @@ jobs:
       # 因此不依賴外部網站可用性——CI 綠燈代表解析邏輯正確，不代表網站沒改版。
       - name: 執行測試
         run: pytest -q
+
+      # notebook 的輸出是存在 .ipynb 檔案裡的：資料換了、套件升版之後，
+      # 圖表還會顯示著舊數字，看起來一切正常。nbmake 每次都重跑一遍，
+      # 任何一格拋例外就讓 CI 紅——這是唯一能防止 notebook 悄悄過期的方式。
+      - name: 執行 notebook（防止舊輸出悄悄過期）
+      # data/ 不進版控，所以 CI 只會有 sample_data/——
+      # 版控內的 notebook 輸出正是走 sample_data 那份，兩邊一致。
+        run: pytest -q --nbmake notebooks/

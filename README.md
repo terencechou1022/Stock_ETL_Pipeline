@@ -1,13 +1,12 @@
 # 台股市場資料網路爬蟲與 ETL Pipeline
 
 [![CI](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml)
-[![Live demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://stock-etl-pipeline.streamlit.app)
 
 從證交所、期交所與集保三個官方來源抽取台股資料，正規化後**冪等增量寫入** CSV。
 fetch／parse／storage 三層分離，解析層為純函式，39 個測試全離線執行，
 每交易日由 GitHub Actions 排程更新。
 
-**線上儀表板：https://stock-etl-pipeline.streamlit.app**
+**互動儀表板**：`streamlit run streamlit_app.py`——把三個來源放在同一頁。沒有本機爬蟲結果時會自動退回版控內的 `sample_data/`，fresh clone 直接能跑。
 
 | 來源 | 抓什麼 | 技術 |
 |---|---|---|
@@ -78,7 +77,7 @@ flowchart LR
     A3 --> B
     B --> C
     C --> D[("data/*.csv")]
-    D --> E["app.py<br/>Streamlit 儀表板"]
+    D --> E["streamlit_app.py<br/>Streamlit 儀表板"]
 ```
 
 這樣拆的理由很實際：
@@ -145,17 +144,39 @@ $ python main.py twse --stock 2330 --start 2024-02 --end 2024-03   # 重疊區�
 
 ### 儀表板
 
-線上版本（Streamlit Community Cloud）：https://stock-etl-pipeline.streamlit.app
-
 本機執行：
 
 ```bash
-streamlit run app.py
+streamlit run streamlit_app.py
 ```
 
 顯示股價、期貨未平倉、大戶持股比例三條線。資料來源的選擇是自動的：
 **有 `data/` 就用 `data/`，沒有才退回 `sample_data/`**。因為 `data/` 不納入版本控制，
-雲端部署時只會有後者；本機跑過爬蟲之後就會自動切換到最新資料，不需要改任何設定。
+fresh clone 只會有後者；本機跑過爬蟲之後就會自動切換到最新資料，不需要改任何設定。
+
+### 資料探索 notebook
+
+[`notebooks/eda.ipynb`](notebooks/eda.ipynb) 檢查三個來源在對齊之前長什麼樣子，
+沿用儀表板同一套 `data/` → `sample_data/` 退回規則。五個問題，其中三個結論值得先知道：
+
+- **三個來源的主鍵不同**：證交所是「日期」，期交所是「日期＋到期月份」（每天 6 支契約），
+  集保是「日期＋持股級距」。所以「今天的未平倉量」不是一個數字，得先選一支契約
+- **缺值有三種成因，不能用同一招處理**：`twse.註記` 整欄皆空（但除權息時是唯一線索，
+  不能刪）、期交所 OHLC 的缺值全落在**遠月契約**（當天沒成交，但同一列的未平倉與結算價
+  都還在——這正是儀表板看未平倉而不看期貨價格的理由）、集保 `人數` 的缺值精準對應
+  `差異數調整（說明4）` 那個級距（它是股數平衡項，本來就沒有持有人）
+- **三源內接之後只剩 5 個點**。`sample_data/` 這份 35 KB 快照**不足以**回答
+  「價格在動的時候籌碼往哪裡走」——要回答得先跑爬蟲把 `data/` 補到涵蓋數個季度
+
+另外三個不會報錯、只會讓數字悄悄錯掉的陷阱：`合　計` 是級距之一而且中間是**全形空白**、
+`差異數調整` 是負數且**已包含在合計內**（濾掉會讓總數對不上）、
+級距是字串所以直接排序會把 `"1,000,001以上"` 排在 `"1-999"` 前面。
+
+```bash
+jupyter nbconvert --execute --inplace notebooks/eda.ipynb
+```
+
+版控內的執行結果是走 `sample_data/` 的版本，與 fresh clone 及 CI 跑出來的一致。
 
 ### 報酬率分析
 
@@ -252,7 +273,8 @@ pytest -q      # 39 passed
 
 ```
 ├── main.py                  # CLI 入口
-├── app.py                   # Streamlit 儀表板
+├── streamlit_app.py         # Streamlit 儀表板
+├── notebooks/eda.ipynb      # 三來源的資料探索（對齊前的粒度、陷阱與缺值）
 ├── sample_data/             # 展示快照，供線上 demo（data/ 不納入版控）
 ├── scrapers/
 │   ├── twse.py              # 證交所（requests + JSON API）
@@ -275,4 +297,4 @@ pytest -q      # 39 passed
 資料來自臺灣證券交易所、臺灣期貨交易所、臺灣集中保管結算所之公開資訊。
 本專案僅供學習與技術研究，**不構成任何投資建議**。
 抓取結果（`data/`）不納入版本控制，請自行執行取得。`sample_data/` 是一份約 35 KB 的
-小型快照，僅為了讓線上儀表板有東西可看而納入版控。
+小型快照，納入版控是為了讓 fresh clone 的儀表板與 notebook 有東西可跑。

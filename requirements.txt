@@ -7,6 +7,7 @@ lxml>=5.0            # pandas.read_html 的解析後端，同時用於擷取頁�
 
 # 測試
 pytest>=8.0
+nbmake>=1.5          # pytest --nbmake notebooks/：防止 notebook 的舊輸出悄悄過期
 
 # 分析與儀表板
 streamlit>=1.35

@@ -5,7 +5,7 @@
 籌碼是往集中還是往分散走」——單看任何一個都看不出來。
 
 啟動方式：
-    streamlit run app.py
+    streamlit run streamlit_app.py
 """
 from pathlib import Path
 
