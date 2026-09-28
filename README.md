@@ -3,8 +3,7 @@
 [![CI](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/terencechou1022/Stock_ETL_Pipeline/actions/workflows/ci.yml)
 
 從證交所、期交所與集保三個官方來源抽取台股資料，正規化後**冪等增量寫入** CSV。
-fetch／parse／storage 三層分離，解析層為純函式，39 個測試全離線執行，
-每交易日由 GitHub Actions 排程更新。
+fetch／parse／storage 三層分離，解析層為純函式，39 個測試全離線執行。
 
 | 來源 | 抓什麼 | 技術 |
 |---|---|---|
@@ -30,7 +29,7 @@ fetch／parse／storage 三層分離，解析層為純函式，39 個測試全�
 | **部分失敗容忍** | 單日查無資料歸類為 `NoDataError`，跳過並記錄，不讓一天休市中斷整批作業 | [`taifex.py`](scrapers/taifex.py) |
 | **重試策略** | 只在 fetch 層以遞增間隔重試；`NoDataError` 不重試——那是確定沒有，再試也沒用 | [`retry.py`](scrapers/retry.py) |
 | **可離線測試** | parse 為純函式；測試封鎖 socket，碰到網路就失敗 | [`tests/conftest.py`](tests/conftest.py) |
-| **排程執行** | GitHub Actions 每交易日收盤後自動抓取 | [`.github/workflows/`](.github/workflows/) |
+| **排程執行** | GitHub Actions 抓取當月資料驗證爬蟲（每日排程目前關閉，改為手動觸發） | [`.github/workflows/`](.github/workflows/) |
 
 其中**冪等**與**部分失敗容忍**都是實際輸出，不是設計意圖而已：
 
@@ -245,7 +244,7 @@ pytest -q      # 39 passed
 │   └── errors.py            # NoDataError / UnexpectedPageError
 ├── analysis/returns.py      # 多標的累積報酬比較
 ├── tests/                   # 39 個離線測試 + 真實回應樣本
-└── .github/workflows/       # CI（測試）與每日排程抓取
+└── .github/workflows/       # CI（測試）與抓取驗證（手動觸發）
 ```
 
 ---
